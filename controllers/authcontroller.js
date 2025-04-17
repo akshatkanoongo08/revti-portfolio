@@ -30,35 +30,35 @@ exports.login = async (req, res) => {
 };
 
 // @desc    Register a new admin
-exports.register = async (req, res) => {
-  try {
-    const { username, password } = req.body;
+// exports.register = async (req, res) => {
+//   try {
+//     const { username, password } = req.body;
 
-    const adminExists = await Admin.findOne({ username });
+//     const adminExists = await Admin.findOne({ username });
 
-    if (adminExists) {
-      res.status(400).json({ message: 'Admin already exists' });
-      return;
-    }
+//     if (adminExists) {
+//       res.status(400).json({ message: 'Admin already exists' });
+//       return;
+//     }
 
-    const admin = await Admin.create({
-      username,
-      password,
-    });
+//     const admin = await Admin.create({
+//       username,
+//       password,
+//     });
 
-    if (admin) {
-      res.status(201).json({
-        _id: admin._id,
-        username: admin.username,
-        token: generateToken(admin._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid admin data' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+//     if (admin) {
+//       res.status(201).json({
+//         _id: admin._id,
+//         username: admin.username,
+//         token: generateToken(admin._id),
+//       });
+//     } else {
+//       res.status(400).json({ message: 'Invalid admin data' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 
 // @desc    Get admin profile
 exports.getProfile = async (req, res) => {

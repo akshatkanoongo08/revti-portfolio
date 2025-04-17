@@ -7,8 +7,8 @@ const createAdmin = async () => {
     await mongoose.connect(process.env.MONGODB_URI);
 
     const adminData = {
-      username: 'admin', // Change this to your preferred username
-      password: 'your_secure_password' // Change this to your preferred password
+      username: 'admin@gmail.com', // Change this to your preferred username
+      password: 'djakshat' // Change this to your preferred password
     };
 
     const admin = await Admin.create(adminData);

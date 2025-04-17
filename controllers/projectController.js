@@ -1,6 +1,7 @@
 const Project = require('../models/Project');
 const Category = require('../models/Category');
-const { cloudinary } = require('../config/cloudinary');
+const path = require('path');
+const cloudinary = require('cloudinary').v2;
 
 // Get all projects
 exports.getProjects = async (req, res) => {
@@ -28,50 +29,89 @@ exports.getProject = async (req, res) => {
 // Create a new project
 exports.createProject = async (req, res) => {
   try {
-      const projectData = {
-          title: req.body.title,
-          description: req.body.description,
-          categories: req.body.categories,
-          client: req.body.client,
-          task: req.body.task,
-          role: req.body.role,
-          date: req.body.date,
-          categoryYear: req.body.categoryYear,
-          liveSite: req.body.liveSite,
-          projectLink: req.body.projectLink || '/portfolio-single'
+    // Parse and validate categories
+    let categories = [];
+    
+    if (req.body.categories) {
+      try {
+        // Try parsing as JSON first
+        categories = typeof req.body.categories === 'string' 
+          ? JSON.parse(req.body.categories) 
+          : req.body.categories;
+        
+        // Ensure it's an array
+        if (!Array.isArray(categories)) {
+          categories = categories.split(',').map(cat => cat.trim());
+        }
+        
+        // Validate at least one category
+        if (categories.length === 0) {
+          return res.status(400).json({ message: 'At least one category is required' });
+        }
+      } catch (err) {
+        return res.status(400).json({ message: 'Invalid categories format' });
+      }
+    }
+    
+    // Parse categories and role if they're strings
+    let role = req.body.role;
+
+    if (typeof role === 'string') {
+      try {
+        role = JSON.parse(role);
+      } catch (e) {
+        role = role.split(',').map(r => r.trim());
+      }
+    }
+
+    const projectData = {
+      title: req.body.title,
+      description: req.body.description,
+      categories: categories || [],
+      client: req.body.client,
+      task: req.body.task,
+      role: role || [],
+      date: req.body.date,
+      categoryYear: req.body.categoryYear,
+      liveSite: req.body.liveSite,
+      projectLink: req.body.projectLink || '/portfolio-single'
+    };
+
+    // Handle main image
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      projectData.image = {
+        url: result.secure_url,
+        public_id: result.public_id
       };
+    }
 
-      // Handle main image
-      if (req.file) {
-          projectData.image = {
-              url: req.file.path,
-              public_id: req.file.filename
+    // Handle gallery images
+    if (req.files?.gallery) {
+      projectData.gallery = await Promise.all(
+        req.files.gallery.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path);
+          return {
+            url: result.secure_url,
+            public_id: result.public_id
           };
-      }
+        })
+      );
+    }
 
-      // Handle gallery images
-      if (req.files && req.files.length > 0) {
-          projectData.gallery = req.files.map(file => ({
-              url: file.path,
-              public_id: file.filename
-          }));
-      }
+    const project = new Project(projectData);
+    const savedProject = await project.save();
 
-      const project = new Project(projectData);
-      const savedProject = await project.save();
-
-      // Update category counts
-      await updateCategoryCounts();
-
-      res.status(201).json({
-          success: true,
-          data: savedProject
-      });
+    res.status(201).json({
+      success: true,
+      data: savedProject
+    });
   } catch (error) {
-      res.status(400).json({
-          success: false,
-          message: error.message
-      });
+    console.error('Project creation error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
@@ -79,101 +119,110 @@ exports.createProject = async (req, res) => {
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+
+    // Parse and validate categories
+    let categories = [];
     
-    if (req.file) {
-      const oldProject = await Project.findById(id);
-      if (oldProject.image && oldProject.image.public_id) {
-        await cloudinary.uploader.destroy(oldProject.image.public_id);
+    if (req.body.categories) {
+      try {
+        // Try parsing as JSON first
+        categories = typeof req.body.categories === 'string' 
+          ? JSON.parse(req.body.categories) 
+          : req.body.categories;
+        
+        // Ensure it's an array
+        if (!Array.isArray(categories)) {
+          categories = categories.split(',').map(cat => cat.trim());
+        }
+        
+        // Validate at least one category
+        if (categories.length === 0) {
+          return res.status(400).json({ message: 'At least one category is required' });
+        }
+      } catch (err) {
+        return res.status(400).json({ message: 'Invalid categories format' });
       }
-      
+    }
+    
+    // Parse categories and role if they're strings
+    let role = req.body.role;
+
+    if (typeof role === 'string') {
+      try {
+        role = JSON.parse(role);
+      } catch (e) {
+        role = role.split(',').map(r => r.trim());
+      }
+    }
+
+    const updateData = {
+      ...req.body,
+      categories: categories || [],
+      role: role || []
+    };
+
+    // Handle main image
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
       updateData.image = {
-        url: req.file.path,
-        public_id: req.file.filename
+        url: result.secure_url,
+        public_id: result.public_id
       };
     }
 
-    if (req.files && req.files.length > 0) {
-      const oldProject = await Project.findById(id);
-      if (oldProject.gallery && oldProject.gallery.length > 0) {
-        for (const image of oldProject.gallery) {
-          if (image.public_id) {
-            await cloudinary.uploader.destroy(image.public_id);
-          }
-        }
-      }
-      
-      updateData.gallery = req.files.map(file => ({
-        url: file.path,
-        public_id: file.filename
-      }));
+    // Handle gallery images
+    if (req.files?.gallery) {
+      updateData.gallery = await Promise.all(
+        req.files.gallery.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path);
+          return {
+            url: result.secure_url,
+            public_id: result.public_id
+          };
+        })
+      );
     }
 
-    const project = await Project.findByIdAndUpdate(id, updateData, { new: true });
-    if (!project) {
+    const updatedProject = await Project.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProject) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    
-    await updateCategoryCounts();
-    
-    res.json(project);
+
+    res.json({
+      success: true,
+      data: updatedProject
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Project update error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
-// Delete a project
 // Delete a project
 exports.deleteProject = async (req, res) => {
   try {
-    const { id } = req.params;
-    const project = await Project.findById(id);
+    const project = await Project.findById(req.params.id);
     
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Delete image from Cloudinary if it exists
-    if (project.image && project.image.public_id) {
-      await cloudinary.uploader.destroy(project.image.public_id);
-    }
-
-    // Delete gallery images from Cloudinary if they exist
-    if (project.gallery && project.gallery.length > 0) {
-      for (const image of project.gallery) {
-        if (image.public_id) {
-          await cloudinary.uploader.destroy(image.public_id);
-        }
-      }
-    }
-
-    // Use findByIdAndDelete instead of remove()
-    await Project.findByIdAndDelete(id);
-    await updateCategoryCounts();
+    await Project.findByIdAndDelete(req.params.id);
     
-    res.json({ message: 'Project deleted successfully' });
+    res.json({ 
+      success: true,
+      message: 'Project deleted successfully' 
+    });
   } catch (error) {
+    console.error('Project deletion error:', error);
     res.status(500).json({ message: error.message });
   }
 };
-
-// Helper function to update category counts
-async function updateCategoryCounts() {
-  try {
-    const projects = await Project.find();
-    const categories = await Category.find();
-    
-    for (const category of categories) {
-      const count = projects.filter(project => 
-        project.categories.some(cat => 
-          cat.toLowerCase().replace(/\s+/g, '-') === category.value
-        )
-      ).length;
-      
-      await Category.findByIdAndUpdate(category._id, { count });
-    }
-  } catch (error) {
-    console.error('Error updating category counts:', error);
-  }
-}
-// ... rest of the controller code ...
