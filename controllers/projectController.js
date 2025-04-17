@@ -77,27 +77,28 @@ exports.createProject = async (req, res) => {
       projectLink: req.body.projectLink || '/portfolio-single'
     };
 
-    // Handle main image
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      projectData.image = {
-        url: result.secure_url,
-        public_id: result.public_id
-      };
-    }
+    const cloudinary = require('cloudinary').v2; // Ensure this is at the top if not already
 
-    // Handle gallery images
-    if (req.files?.gallery) {
-      projectData.gallery = await Promise.all(
-        req.files.gallery.map(async (file) => {
-          const result = await cloudinary.uploader.upload(file.path);
-          return {
-            url: result.secure_url,
-            public_id: result.public_id
-          };
-        })
-      );
-    }
+// Handle main image
+    // Handle main image
+const imageFile = req.files?.image?.[0];
+if (imageFile) {
+  projectData.image = {
+    url: imageFile.path,
+    public_id: imageFile.filename
+  };
+}
+
+// Handle gallery images
+const galleryFiles = req.files?.gallery || [];
+if (galleryFiles.length > 0) {
+  projectData.gallery = galleryFiles.map(file => ({
+    url: file.path,
+    public_id: file.filename
+  }));
+}
+
+
 
     const project = new Project(projectData);
     const savedProject = await project.save();
@@ -162,26 +163,23 @@ exports.updateProject = async (req, res) => {
     };
 
     // Handle main image
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      updateData.image = {
-        url: result.secure_url,
-        public_id: result.public_id
+        // Handle main image
+    const imageFile = req.files?.image?.[0];
+    if (imageFile) {
+      projectData.image = {
+        url: imageFile.path,
+        public_id: imageFile.filename
       };
     }
 
     // Handle gallery images
-    if (req.files?.gallery) {
-      updateData.gallery = await Promise.all(
-        req.files.gallery.map(async (file) => {
-          const result = await cloudinary.uploader.upload(file.path);
-          return {
-            url: result.secure_url,
-            public_id: result.public_id
-          };
-        })
-      );
-    }
+    const galleryFiles = req.files?.gallery || [];
+    if (galleryFiles.length > 0) {
+      projectData.gallery = galleryFiles.map(file => ({
+        url: file.path,
+        public_id: file.filename
+      }));
+    }    
 
     const updatedProject = await Project.findByIdAndUpdate(
       id,

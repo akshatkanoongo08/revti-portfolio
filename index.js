@@ -19,7 +19,7 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 app.use(express.json());
-  
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authmiddleware');
-const { singleUpload, multipleUpload } = require('../middleware/uploadMiddleware');
+const { fieldsUpload } = require('../middleware/uploadMiddleware');
 const {
   getProjects,
   getProject,
@@ -15,11 +15,11 @@ router.get('/', getProjects);
 router.get('/:id', getProject);
 
 // Protected routes with image upload
-router.post('/', protect, singleUpload, createProject);
-router.put('/:id', protect, singleUpload, updateProject);
+router.post('/', protect, fieldsUpload, createProject);
+router.put('/:id', protect, fieldsUpload, updateProject);
 router.delete('/:id', protect, deleteProject);
 
 // Route for updating gallery images
-router.put('/:id/gallery', protect, multipleUpload, updateProject);
+router.put('/:id/gallery', protect, fieldsUpload, updateProject);
 
 module.exports = router;
