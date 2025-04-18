@@ -77,28 +77,27 @@ exports.createProject = async (req, res) => {
       projectLink: req.body.projectLink || '/portfolio-single'
     };
 
-    const cloudinary = require('cloudinary').v2; // Ensure this is at the top if not already
+    // Debug: log files and body
+    console.log('FILES:', req.files);
+    console.log('BODY:', req.body);
 
-// Handle main image
     // Handle main image
-const imageFile = req.files?.image?.[0];
-if (imageFile) {
-  projectData.image = {
-    url: imageFile.path,
-    public_id: imageFile.filename
-  };
-}
+    const imageFile = req.files?.image?.[0];
+    if (imageFile) {
+      projectData.image = {
+        url: imageFile.path,
+        public_id: imageFile.filename
+      };
+    }
 
-// Handle gallery images
-const galleryFiles = req.files?.gallery || [];
-if (galleryFiles.length > 0) {
-  projectData.gallery = galleryFiles.map(file => ({
-    url: file.path,
-    public_id: file.filename
-  }));
-}
-
-
+    // Handle gallery images
+    const galleryFiles = req.files?.gallery || [];
+    if (galleryFiles.length > 0) {
+      projectData.gallery = galleryFiles.map(file => ({
+        url: file.path,
+        public_id: file.filename
+      }));
+    }
 
     const project = new Project(projectData);
     const savedProject = await project.save();
