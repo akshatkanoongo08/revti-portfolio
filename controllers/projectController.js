@@ -83,12 +83,14 @@ exports.createProject = async (req, res) => {
 
     // Handle main image
     const imageFile = req.files?.image?.[0];
-    if (imageFile) {
-      projectData.image = {
-        url: imageFile.path,
-        public_id: imageFile.filename
-      };
-    }
+if (imageFile) {
+  console.log('imageFile:', imageFile);
+  console.log('imageFile.path:', imageFile.path, typeof imageFile.path);
+  projectData.image = {
+    url: typeof imageFile.path === 'string' ? imageFile.path : (imageFile.path?.toString ? imageFile.path.toString() : ''),
+    public_id: imageFile.filename
+  };
+}
 
     // Handle gallery images
     const galleryFiles = req.files?.gallery || [];
