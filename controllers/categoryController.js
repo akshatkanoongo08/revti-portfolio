@@ -15,6 +15,7 @@ exports.createCategory = async (req, res) => {
   try {
     
     const { label, value } = req.body;
+    
     const category = new Category({
       label,
       value: value || label.toLowerCase().replace(/\s+/g, '-'),

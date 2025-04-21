@@ -29,6 +29,7 @@ exports.getProject = async (req, res) => {
 // Create a new project
 exports.createProject = async (req, res) => {
   try {
+    console.log('FILES:', req.files);
     // Parse and validate categories
     let categories = [];
     
