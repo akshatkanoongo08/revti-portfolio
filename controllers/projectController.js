@@ -3,20 +3,18 @@ const Category = require('../models/Category');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
 
-// Get all projects
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find();
+    const projects = await Project.find().populate('categories');
     res.json(projects);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get single project
 exports.getProject = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(req.params.id).populate('categories');
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
@@ -32,28 +30,39 @@ exports.createProject = async (req, res) => {
     console.log('FILES:', req.files);
     // Parse and validate categories
     let categories = [];
-    
+
     if (req.body.categories) {
       try {
-        // Try parsing as JSON first
-        categories = typeof req.body.categories === 'string' 
+        let categoryValues = typeof req.body.categories === 'string' 
           ? JSON.parse(req.body.categories) 
           : req.body.categories;
-        
-        // Ensure it's an array
-        if (!Array.isArray(categories)) {
-          categories = categories.split(',').map(cat => cat.trim());
+
+        if (!Array.isArray(categoryValues)) {
+          categoryValues = categoryValues.split(',').map(cat => cat.trim());
         }
-        
-        // Validate at least one category
-        if (categories.length === 0) {
+
+        if (categoryValues.length === 0) {
           return res.status(400).json({ message: 'At least one category is required' });
         }
+
+        // Map to ObjectIds
+        const mongoose = require('mongoose');
+        categories = await Promise.all(categoryValues.map(async (catValue) => {
+          let category = null;
+          // Try to find by value first
+          category = await Category.findOne({ value: catValue.trim() });
+          // If not found, try by _id (ObjectId)
+          if (!category && mongoose.Types.ObjectId.isValid(catValue.trim())) {
+            category = await Category.findById(catValue.trim());
+          }
+          if (!category) throw new Error(`Category "${catValue}" not found`);
+          return category._id;
+        }));
       } catch (err) {
-        return res.status(400).json({ message: 'Invalid categories format' });
+        return res.status(400).json({ message: `Invalid categories: ${err.message}` });
       }
     }
-    
+
     // Parse categories and role if they're strings
     let role = req.body.role;
 
@@ -135,7 +144,13 @@ exports.updateProject = async (req, res) => {
         
         // Ensure it's an array
         if (!Array.isArray(categories)) {
-          categories = categories.split(',').map(cat => cat.trim());
+          categories = await Promise.all(categories.map(async (catValue) => {
+            const category = await Category.findOne({ value: catValue.trim() });
+            if (!category) {
+              throw new Error(`Category "${catValue}" not found`);
+            }
+            return category._id;
+          }));
         }
         
         // Validate at least one category

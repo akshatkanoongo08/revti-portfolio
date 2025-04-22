@@ -9,7 +9,7 @@ const imageSchema = new mongoose.Schema({
     type: String,
     required: true
   }
-}, { _id: false }); // Prevents automatic _id creation for subdocs
+}, { _id: false });
 
 const projectSchema = new mongoose.Schema({
   title: {
@@ -22,10 +22,10 @@ const projectSchema = new mongoose.Schema({
     required: false
   },
   categories: [{
-    type: String,
-    required: true,
-    trim: true
-  }],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: true
+  }],  
   description: {
     type: String,
     required: true
