@@ -33,15 +33,20 @@ exports.createProject = async (req, res) => {
 
     if (req.body.categories) {
       try {
-        let categoryValues = typeof req.body.categories === 'string' 
-          ? JSON.parse(req.body.categories) 
-          : req.body.categories;
-
+        let categoryValues = req.body.categories;
+        if (typeof categoryValues === 'string') {
+          try {
+            categoryValues = JSON.parse(categoryValues);
+          } catch (e) {
+            categoryValues = categoryValues.split(',').map(cat => cat.trim());
+          }
+        }
         if (!Array.isArray(categoryValues)) {
-          categoryValues = categoryValues.split(',').map(cat => cat.trim());
+          categoryValues = [categoryValues];
         }
 
         if (categoryValues.length === 0) {
+          console.error('400 error: No categories provided');
           return res.status(400).json({ message: 'At least one category is required' });
         }
 
@@ -59,6 +64,7 @@ exports.createProject = async (req, res) => {
           return category._id;
         }));
       } catch (err) {
+        console.error('400 error: Invalid categories:', err.message);
         return res.status(400).json({ message: `Invalid categories: ${err.message}` });
       }
     }
@@ -109,7 +115,10 @@ if (imageFile) {
         url: file.path,
         public_id: file.filename
       }));
+    } else {
+      projectData.gallery = [];
     }
+    console.log('projectData.gallery:', projectData.gallery);
 
     const project = new Project(projectData);
     const savedProject = await project.save();
