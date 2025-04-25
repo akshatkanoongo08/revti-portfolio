@@ -90,8 +90,18 @@ exports.createProject = async (req, res) => {
       date: req.body.date,
       categoryYear: req.body.categoryYear,
       liveSite: req.body.liveSite,
-      projectLink: req.body.projectLink || '/portfolio-single'
+      projectLink: req.body.projectLink || '/portfolio-single',
+      pdfUrl: req.body.pdfUrl || ''
     };
+
+    // Handle optional PDF upload
+    const pdfFile = req.files?.pdf?.[0];
+    if (pdfFile) {
+      projectData.pdf = {
+        url: typeof pdfFile.path === 'string' ? pdfFile.path : (pdfFile.path?.toString ? pdfFile.path.toString() : ''),
+        public_id: pdfFile.filename
+      };
+    }
 
     // Debug: log files and body
     console.log('FILES:', req.files);
@@ -185,8 +195,18 @@ exports.updateProject = async (req, res) => {
     const updateData = {
       ...req.body,
       categories: categories || [],
-      role: role || []
+      role: role || [],
+      pdfUrl: req.body.pdfUrl || ''
     };
+
+    // Handle optional PDF upload
+    const pdfFile = req.files?.pdf?.[0];
+    if (pdfFile) {
+      updateData.pdf = {
+        url: typeof pdfFile.path === 'string' ? pdfFile.path : (pdfFile.path?.toString ? pdfFile.path.toString() : ''),
+        public_id: pdfFile.filename
+      };
+    }
 
     // Handle main image
         // Handle main image

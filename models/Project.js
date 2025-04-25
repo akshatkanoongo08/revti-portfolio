@@ -12,6 +12,13 @@ const imageSchema = new mongoose.Schema({
 }, { _id: false });
 
 const projectSchema = new mongoose.Schema({
+  pdf: {
+    url: { type: String },
+    public_id: { type: String }
+  },
+  pdfUrl: {
+    type: String
+  },
   title: {
     type: String,
     required: true,
