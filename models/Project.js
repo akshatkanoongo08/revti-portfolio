@@ -57,6 +57,13 @@ const projectSchema = new mongoose.Schema({
   liveSite: {
     type: String
   },
+  timeline: {
+    type: String
+  },
+  featured: {
+    type: Boolean,
+    default: false
+  },
   gallery: {
     type: [imageSchema],
     default: []

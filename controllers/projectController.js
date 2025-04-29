@@ -91,8 +91,11 @@ exports.createProject = async (req, res) => {
       categoryYear: req.body.categoryYear,
       liveSite: req.body.liveSite,
       projectLink: req.body.projectLink || '/portfolio-single',
-      pdfUrl: req.body.pdfUrl || ''
+      pdfUrl: req.body.pdfUrl || '',
+      featured: req.body.featured === 'true' || req.body.featured === true
     };
+    // Debug: log the featured value and its type
+    console.log('FEATURED FIELD:', req.body.featured, typeof req.body.featured);
 
     // Handle optional PDF upload
     const pdfFile = req.files?.pdf?.[0];
@@ -196,7 +199,8 @@ exports.updateProject = async (req, res) => {
       ...req.body,
       categories: categories || [],
       role: role || [],
-      pdfUrl: req.body.pdfUrl || ''
+      pdfUrl: req.body.pdfUrl || '',
+      featured: req.body.featured === 'true' || req.body.featured === true
     };
 
     // Handle optional PDF upload
