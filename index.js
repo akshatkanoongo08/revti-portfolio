@@ -12,6 +12,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const projectRoutes = require('./routes/projectRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 const app = express();
 
@@ -35,7 +36,8 @@ app.use(morgan('dev'));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/projects', projectRoutes);  
+app.use('/api/projects', projectRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
