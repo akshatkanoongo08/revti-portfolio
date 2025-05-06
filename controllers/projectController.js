@@ -2,7 +2,7 @@ const Project = require('../models/Project');
 const Category = require('../models/Category');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
-
+const mongoose = require('mongoose');
 exports.getProjects = async (req, res) => {
   try {
     const projects = await Project.find().populate('categories');
@@ -150,43 +150,49 @@ if (imageFile) {
 };
 
 // Update a project
+// ... existing code ...
+
+// Make sure this is at the top of your file
+
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
 
     // Parse and validate categories
     let categories = [];
-    
     if (req.body.categories) {
       try {
-        // Try parsing as JSON first
-        categories = typeof req.body.categories === 'string' 
-          ? JSON.parse(req.body.categories) 
-          : req.body.categories;
-        
-        // Ensure it's an array
-        if (!Array.isArray(categories)) {
-          categories = await Promise.all(categories.map(async (catValue) => {
-            const category = await Category.findOne({ value: catValue.trim() });
-            if (!category) {
-              throw new Error(`Category "${catValue}" not found`);
+        let categoryValues = req.body.categories;
+        if (typeof categoryValues === 'string') {
+          // If it's a valid ObjectId, use it directly
+          if (mongoose.Types.ObjectId.isValid(categoryValues.trim())) {
+            categoryValues = [categoryValues.trim()];
+          } else {
+            try {
+              categoryValues = JSON.parse(categoryValues);
+            } catch (e) {
+              categoryValues = categoryValues.split(',').map(cat => cat.trim());
             }
-            return category._id;
-          }));
+          }
         }
-        
-        // Validate at least one category
-        if (categories.length === 0) {
-          return res.status(400).json({ message: 'At least one category is required' });
+        if (!Array.isArray(categoryValues)) {
+          categoryValues = [categoryValues];
         }
+        categories = await Promise.all(categoryValues.map(async (catValue) => {
+          let category = await Category.findOne({ value: catValue.trim() });
+          if (!category && mongoose.Types.ObjectId.isValid(catValue.trim())) {
+            category = await Category.findById(catValue.trim());
+          }
+          if (!category) throw new Error(`Category "${catValue}" not found`);
+          return category._id;
+        }));
       } catch (err) {
-        return res.status(400).json({ message: 'Invalid categories format' });
+        return res.status(400).json({ message: `Invalid categories: ${err.message}` });
       }
     }
-    
-    // Parse categories and role if they're strings
-    let role = req.body.role;
 
+    // Parse role if it's a string
+    let role = req.body.role;
     if (typeof role === 'string') {
       try {
         role = JSON.parse(role);
@@ -213,11 +219,10 @@ exports.updateProject = async (req, res) => {
     }
 
     // Handle main image
-        // Handle main image
     const imageFile = req.files?.image?.[0];
     if (imageFile) {
-      projectData.image = {
-        url: imageFile.path,
+      updateData.image = {
+        url: typeof imageFile.path === 'string' ? imageFile.path : (imageFile.path?.toString ? imageFile.path.toString() : ''),
         public_id: imageFile.filename
       };
     }
@@ -225,11 +230,11 @@ exports.updateProject = async (req, res) => {
     // Handle gallery images
     const galleryFiles = req.files?.gallery || [];
     if (galleryFiles.length > 0) {
-      projectData.gallery = galleryFiles.map(file => ({
+      updateData.gallery = galleryFiles.map(file => ({
         url: file.path,
         public_id: file.filename
       }));
-    }    
+    }
 
     const updatedProject = await Project.findByIdAndUpdate(
       id,
