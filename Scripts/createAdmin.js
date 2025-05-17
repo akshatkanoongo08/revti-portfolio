@@ -13,7 +13,7 @@ const createAdmin = async () => {
 
     const admin = await Admin.create(adminData);
     console.log('Admin user created successfully:', admin.username);
-
+    console.log('Admin user created successfully:', admin.password);
     await mongoose.disconnect();
   } catch (error) {
     console.error('Error creating admin:', error);
